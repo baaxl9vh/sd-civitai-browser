@@ -41,12 +41,15 @@ def download_file(url, file_name):
         # Initialize the progress bar
         progress = tqdm(total=1000000000, unit="B", unit_scale=True, desc=f"Downloading {file_name_display}", initial=downloaded_size, leave=False)
 
+        # proxy
+        proxy = {'http': 'http://192.168.1.11:1088', 'https': 'http://192.168.1.11:1088'}
+
         # Open a local file to save the download
         with open(file_name, "ab") as f:
             while True:
                 try:
                     # Send a GET request to the URL and save the response to the local file
-                    response = requests.get(url, headers=headers, stream=True)
+                    response = requests.get(url, proxies=proxy, headers=headers, stream=True)
 
                     # Get the total size of the file
                     total_size = int(response.headers.get("Content-Length", 0))
@@ -54,7 +57,7 @@ def download_file(url, file_name):
                     # Update the total size of the progress bar if the `Content-Length` header is present
                     if total_size == 0:
                         total_size = downloaded_size
-                    progress.total = total_size 
+                    progress.total = total_size
 
                     # Write the response to the local file and update the progress bar
                     for chunk in response.iter_content(chunk_size=1024):
@@ -121,19 +124,19 @@ def make_new_folder(content_type, use_new_folder, model_name, lora_old):
             model_folder = new_folder
             if not os.path.exists(new_folder):
                 os.makedirs(new_folder)
-            
+
         else:
             model_folder = folder
             if not os.path.exists(model_folder):
                 os.makedirs(model_folder)
-    else:            
+    else:
         if use_new_folder:
             model_folder = os.path.join(new_folder,model_name.replace(" ","_").replace("(","").replace(")","").replace("|","").replace(":","-"))
             if not os.path.exists(new_folder):
                 os.makedirs(new_folder)
             if not os.path.exists(model_folder):
                 os.makedirs(model_folder)
-            
+
         else:
             model_folder = os.path.join(folder,model_name.replace(" ","_").replace("(","").replace(")","").replace("|","").replace(":","-"))
             if not os.path.exists(model_folder):
@@ -143,7 +146,7 @@ def make_new_folder(content_type, use_new_folder, model_name, lora_old):
 def download_file_thread(url, file_name, content_type, use_new_folder, model_name, lora_old):
     model_folder = make_new_folder(content_type, use_new_folder, model_name, lora_old)
 
-    path_to_new_file = os.path.join(model_folder, file_name)     
+    path_to_new_file = os.path.join(model_folder, file_name)
 
     thread = threading.Thread(target=download_file, args=(url, path_to_new_file))
 
@@ -281,7 +284,8 @@ def update_model_info(model_name=None, model_version=None):
 
 def request_civit_api(api_url=None):
     # Make a GET request to the API
-    response = requests.get(api_url)
+    proxy = {'http': 'http://192.168.1.11:1088', 'https': 'http://192.168.1.11:1088'}
+    response = requests.get(api_url, proxies=proxy)
 
     # Check the status code of the response
     if response.status_code != 200:
@@ -302,7 +306,7 @@ def save_image_files(preview_image_html, model_filename, content_type, use_new_f
     model_folder = make_new_folder(content_type, use_new_folder, list_models, lora_old)
 
     img_urls = re.findall(r'src=[\'"]?([^\'" >]+)', preview_image_html)
-    
+
     name = os.path.splitext(model_filename)[0]
 
     current_directory = os.getcwd()
@@ -311,7 +315,10 @@ def save_image_files(preview_image_html, model_filename, content_type, use_new_f
     new_model_folder = os.path.join(current_directory, model_folder)
     #new_model_folder = os.path.join(current_directory,list_models.replace(" ","_").replace("(","").replace(")","").replace("|","").replace(":","-"))
 
-    opener = urllib.request.build_opener()
+    proxy_handler = urllib.request.ProxyHandler({'http': 'http://192.168.1.11:1088', 'https': 'http://192.168.1.11:1088'})
+    opener = urllib.request.build_opener(proxy_handler)
+
+    # opener = urllib.request.build_opener()
     opener.addheaders = [('User-agent', 'Mozilla/5.0')]
     urllib.request.install_opener(opener)
 
@@ -326,7 +333,7 @@ def save_image_files(preview_image_html, model_filename, content_type, use_new_f
                     f.write(url.read())
                     print("\t\t\tDownloaded")
             #with urllib.request.urlretrieve(img_url, os.path.join(model_folder, filename)) as dl:
-                    
+
         except urllib.error.URLError as e:
             print(f'Error: {e.reason}')
     print("Images downloaded.")
